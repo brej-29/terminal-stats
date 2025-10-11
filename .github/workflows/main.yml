@@ -1,0 +1,43 @@
+name: Generate Terminal Stats
+
+on:
+  schedule:
+    - cron: "47 2 * * *"   # daily at 02:47 UTC (change if you like)
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps (if any)
+        run: npm ci
+        continue-on-error: true
+
+      # Choose ONE of the two "Generate" steps below
+      # 1) Fixed theme (e.g., 'ubuntu', 'hacker', 'dracula', 'monokai', 'googledark', 'googlelight', 'github', 'powershell')
+      - name: Generate github_stats.svg (fixed theme)
+        run: node updater.js ${{ github.repository_owner }} ubuntu
+        env:
+          GHT: ${{ secrets.GHT }}
+
+      # 2) Random theme (uncomment to use; comment out the fixed-theme step above)
+      # - name: Generate github_stats.svg (random theme)
+      #   run: node updater.js ${{ github.repository_owner }}
+      #   env:
+      #     GHT: ${{ secrets.GHT }}
+
+      - name: Commit & push updated SVG
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update github_stats.svg"
+          file_pattern: "github_stats.svg"
