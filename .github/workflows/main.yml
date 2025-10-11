@@ -8,36 +8,39 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    strategy:
+      matrix:
+        node-version: [14.x]
+   
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with: 
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install deps (if any)
-        run: npm ci
-        continue-on-error: true
-
-      # Choose ONE of the two "Generate" steps below
-      # 1) Fixed theme (e.g., 'ubuntu', 'hacker', 'dracula', 'monokai', 'googledark', 'googlelight', 'github', 'powershell')
-      - name: Generate github_stats.svg (fixed theme)
-        run: node updater.js ${{ github.repository_owner }} ubuntu
+      # Install requirements
+      - name: Install requirements
+        run: |
+          npm install
+          
+      - name: Github Configurations
+        run: |
+          git config --global user.name "Github Actions"
+          git config --global user.email "action@github.com"
+          git pull
+          
+      - name: Update Template
+        run: |
+          node updater.js ${{ github.repository_owner }} atom
         env:
           GHT: ${{ secrets.GHT }}
-
-      # 2) Random theme (uncomment to use; comment out the fixed-theme step above)
-      # - name: Generate github_stats.svg (random theme)
-      #   run: node updater.js ${{ github.repository_owner }}
-      #   env:
-      #     GHT: ${{ secrets.GHT }}
-
-      - name: Commit & push updated SVG
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: update github_stats.svg"
-          file_pattern: "github_stats.svg"
+          
+      # Commiting
+      - name: commiting changed svg template
+        run: |
+          git add .
+          git commit -m "Github Stats updated 🎉" || echo
+          git push
